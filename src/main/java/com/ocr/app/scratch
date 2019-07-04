@@ -1,0 +1,36 @@
+guarantor_bound = get_word_bound("guarantor",boundsTest)
+    final_result =[]
+    for grn_bound in guarantor_bound:
+        result =[]
+        for bounds in boundsTest:
+            if is_word_in_block(bounds["bound"], get_container_bound(grn_bound,boundsBlock)):
+                result.append(bounds["description"])
+        final_result.append(result)
+    # print(get_all_words_within_container(boundsBlock[0],boundsTest))
+    filtered_result=[]
+    for result in final_result:
+        r = re.compile(r"^(\d{9})$")
+        newlist = list(filter(r.match, result))
+        if newlist:
+            filtered_result.append(newlist)
+    print(filtered_result)
+    if not filtered_result:
+        guarantor_number = ''
+    else: guarantor_number =  filtered_result[0][0]
+
+    filtered_result =[]
+    isname = False
+    for result in final_result:
+        if 'name' in result:
+            filtered_result.append(' '.join(result))
+
+
+    guarantor_name =''
+    for flist in filtered_result:
+        regexp = re.compile(r"^[_A-z][_A-z\s]*$")
+        if(regexp.search(flist)):
+            flist = flist.split()
+            if(len(flist)>=4):
+                guarantor_name = flist[2]+" "+flist[3]
+
+return guarantor_number,guarantor_name

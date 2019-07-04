@@ -1,8 +1,14 @@
 package com.ocr.app;
 
+import com.google.api.services.vision.v1.model.*;
+import com.google.api.services.vision.v1.model.AnnotateImageRequest;
+import com.google.api.services.vision.v1.model.AnnotateImageResponse;
 import com.google.api.services.vision.v1.model.BoundingPoly;
+import com.google.api.services.vision.v1.model.Feature;
+import com.google.api.services.vision.v1.model.Image;
 import com.google.cloud.vision.v1.*;
 import com.google.api.services.vision.v1.model.Vertex;
+import com.google.cloud.vision.v1.BatchAnnotateImagesResponse;
 import com.google.protobuf.ByteString;
 import me.xdrop.fuzzywuzzy.FuzzySearch;
 import me.xdrop.fuzzywuzzy.model.BoundExtractedResult;
@@ -22,17 +28,20 @@ enum FeatureType{
 
 public class TextAnalyzer {
 
-    public  void detectDocumentText(String filePath,  FeatureType featureType) throws Exception,
+    private OcrData detectDocumentText(String filePath, FeatureType featureType) throws Exception,
             IOException {
         List<AnnotateImageRequest> requests = new ArrayList<>();
 
         ByteString imgBytes = ByteString.readFrom(new FileInputStream(filePath));
 
         Image img = Image.newBuilder().setContent(imgBytes).build();
-        Feature feat = Feature.newBuilder().setType(Feature.Type.DOCUMENT_TEXT_DETECTION).build();
+        Feature feat = Feature.newBuilder().setType(Type.DOCUMENT_TEXT_DETECTION).build();
         AnnotateImageRequest request =
                 AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
         requests.add(request);
+
+        List<BoundingPoly> boundsBlock = new ArrayList<BoundingPoly>();
+        List<MpWord> boundsTest = new ArrayList<MpWord>();
 
         try (ImageAnnotatorClient client = ImageAnnotatorClient.create()) {
             BatchAnnotateImagesResponse response = client.batchAnnotateImages(requests);
@@ -40,10 +49,6 @@ public class TextAnalyzer {
             client.close();
 
             for (AnnotateImageResponse res : responses) {
-                if (res.hasError()) {
-                    System.out.printf("Error: %s\n", res.getError().getMessage());
-                    return;
-                }
 
                 // For full list of available annotations, see http://g.co/cloud/vision/docs
                 TextAnnotation annotation = res.getFullTextAnnotation();
@@ -62,11 +67,16 @@ public class TextAnalyzer {
                                 }
                                 System.out.format("Word text: %s (confidence: %f)\n\n", wordText, word.getConfidence());
                                 paraText = String.format("%s %s", paraText, wordText);
+                                if(featureType == FeatureType.NONE){
+                                    MpWord currWord = new MpWord(paraText,word.getBoundingBox());
+                                    boundsTest.add(currWord);
+                                }
                             }
                             // Output Example using Paragraph:
                             // out.println("\nParagraph: \n" + paraText);
                             // out.format("Paragraph Confidence: %f\n", para.getConfidence());
                             blockText = blockText + paraText;
+                            if(featureType == FeatureType.BLOCK)boundsBlock.add(block.getBoundingBox());
                         }
                         pageText = pageText + blockText;
                     }
@@ -75,6 +85,9 @@ public class TextAnalyzer {
                 // out.println(annotation.getText());
             }
         }
+        OcrData ocrData = new OcrData(boundsTest,boundsBlock);
+
+        return ocrData;
     }
 
     private float area(int x1, int y1, int x2, int y2, int x3, int y3){
@@ -191,9 +204,22 @@ public class TextAnalyzer {
     }
 
     public void renderFromPostCall(String b64String) {
-        OcrData ocrDataNone = detectDocumentText(b64String, FeatureType.NONE);
+        OcrData ocrDataNone = null;
+        try {
+            ocrDataNone = detectDocumentText(b64String, FeatureType.NONE);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        OcrData ocrDataBlock = null;
+        try {
+            ocrDataBlock = detectDocumentText(b64String, FeatureType.BLOCK);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         String amountValue;
 
+        List<MpWord> boundsTest = ocrDataNone.getBoundsTest();
+        List<BoundingPoly> boundsBlock = ocrDataBlock.getBoundsBlock();
         //boundsTest,boundsBlock = get_document_bounds(b64_string, FeatureType.BLOCK)
         //boundsTest = get_document_bounds(b64_string,FeatureType.NONE)
 
@@ -227,31 +253,56 @@ public class TextAnalyzer {
         }
         if (filteredResult.isEmpty()) amountValue = getFarthestRegex(boundsTest, "\"^\\$[0-9]+\\.?[0-9]*$\"");
         else amountValue = filteredResult.get(0).get(0);
-        provider_name = get_provider_name(b64_string, boundsBlock, boundsTest);
-        String providerAddress = getProviderAddress(b64_string, provider_name, boundsTest, boundsBlock);
-        guarantor_number, guarantor_name = get_guarantor_number(b64_string, boundsTest, boundsBlock);
+        String providerName = getProviderName(b64String, boundsBlock, boundsTest);
+        String providerAddress = getProviderAddress(b64String, providerName, boundsTest, boundsBlock);
+        PatientData guarantorData = getPatientData(b64String, boundsTest, boundsBlock);
     }
 
-    private String getProviderName(String b64_string,List<BoundingPoly> boundsBlock,List<MpWord>boundsTest){
-        int minDistance = 10000;
+    private String getProviderName(String b64String,List<BoundingPoly> boundsBlock,List<MpWord>boundsTest){
+        float minDistance = 10000;
         BoundingPoly providerNameContainer = boundsBlock.get(0);
-        origin = {"x":0, "y":0}
+        Vertex origin = new Vertex();
+        origin.setX(0);
+        origin.setY(0);
         for (BoundingPoly block : boundsBlock){
             if(distanceBetweenPoint(block.getVertices().get(0),origin) < minDistance){
-                minDistance = distanceBetweenPoint(block.vertices[0],origin);
+                minDistance =  distanceBetweenPoint(block.getVertices().get(0),origin);
                 providerNameContainer = block;
             }
         }
-
-
-        resize_container_with_buffer(provider_name_container,10)
-        list_all = get_all_words_within_container(provider_name_container,boundsTest)
-    # print(list_all)
-        image = Image.open(b64_string)
-        draw_boxes(image,boundsBlock,'green')
-        rgb_im = image.convert('RGB')
-        rgb_im.show()
-        return ' '.join(list_all)
+        providerNameContainer = resizeContainerBuffer(providerNameContainer,10);
+        List<String> listAll = getAllWordsWithinContainer(providerNameContainer,boundsTest);
+        String prName = String.join(" ", listAll);
+        return prName;
     }
 
+    private PatientData getPatientData(String b64String , List<MpWord> boundsTest, List<BoundingPoly> boundsBlock) {
+        String patientNumber;
+        String patientName = "";
+        List<BoundingPoly> guarantorBound = getWordBound("patient", boundsTest);
+        ArrayList<List<String>> finalResult = new ArrayList<List<String>>();
+        for (BoundingPoly grnBound : guarantorBound){
+            List<String> result = new ArrayList<>();
+            for (MpWord bounds : boundsTest){
+                if(isWordInBlock(bounds.getBound(), getContainerBound(grnBound,boundsBlock))) result.add(bounds.getDescription());
+            }
+            finalResult.add(result);
+        }
+        ArrayList<List<String>> filteredResult = new ArrayList<List<String>>();
+        ArrayList<String> newList = new ArrayList<String>();
+        for (List<String>result : finalResult){
+            Pattern r = Pattern.compile("\"^(d{9})$\"");
+            for (String s : result) {
+                if (r.matcher(s).matches()) {
+                    newList.add(s);
+                }
+            }if(!newList.isEmpty()) filteredResult.add(newList);
+        }
+
+        if(filteredResult.isEmpty())patientNumber ="";
+        else patientNumber = filteredResult.get(0).get(0);
+
+        PatientData patientData = new PatientData(patientNumber,patientName);
+        return patientData;
+    }
 }
