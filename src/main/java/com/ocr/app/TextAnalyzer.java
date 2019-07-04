@@ -232,5 +232,26 @@ public class TextAnalyzer {
         guarantor_number, guarantor_name = get_guarantor_number(b64_string, boundsTest, boundsBlock);
     }
 
-    private get
+    private String getProviderName(String b64_string,List<BoundingPoly> boundsBlock,List<MpWord>boundsTest){
+        int minDistance = 10000;
+        BoundingPoly providerNameContainer = boundsBlock.get(0);
+        origin = {"x":0, "y":0}
+        for (BoundingPoly block : boundsBlock){
+            if(distanceBetweenPoint(block.getVertices().get(0),origin) < minDistance){
+                minDistance = distanceBetweenPoint(block.vertices[0],origin);
+                providerNameContainer = block;
+            }
+        }
+
+
+        resize_container_with_buffer(provider_name_container,10)
+        list_all = get_all_words_within_container(provider_name_container,boundsTest)
+    # print(list_all)
+        image = Image.open(b64_string)
+        draw_boxes(image,boundsBlock,'green')
+        rgb_im = image.convert('RGB')
+        rgb_im.show()
+        return ' '.join(list_all)
+    }
+
 }
