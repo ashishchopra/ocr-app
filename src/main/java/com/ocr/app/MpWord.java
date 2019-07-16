@@ -1,6 +1,6 @@
 package com.ocr.app;
 
-import com.google.api.services.vision.v1.model.BoundingPoly;
+import com.google.cloud.vision.v1.BoundingPoly;
 import lombok.Data;
 
 @Data

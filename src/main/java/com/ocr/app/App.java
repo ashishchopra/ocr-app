@@ -8,6 +8,9 @@ public class App
 {
     public static void main( String[] args )
     {
-        System.out.println( "Hello World!" );
+        String filePath = args[0];
+        System.out.println(filePath);
+        TextAnalyzer myTextAnalyzer = new TextAnalyzer();
+        myTextAnalyzer.renderFromPostCall(filePath);
     }
 }

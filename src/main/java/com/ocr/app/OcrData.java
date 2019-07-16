@@ -1,6 +1,6 @@
 package com.ocr.app;
 
-import com.google.api.services.vision.v1.model.BoundingPoly;
+import com.google.cloud.vision.v1.BoundingPoly;
 
 import java.util.List;
 
@@ -31,3 +31,6 @@ public class OcrData {
         this.boundsBlock = boundsBlock;
     }
 }
+
+
+//mvn -q clean compile exec:java  -Dexec.args="/home/zadmin/workspace/ocr-app/src/sa^Clebills/itemized-doctor-bill-template-medical-example-ideal-dr-office-invoice-billing-statement-com-images.jpg"

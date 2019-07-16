@@ -1,0 +1,6 @@
+com/ocr/app/App.class
+com/ocr/app/TextAnalyzer.class
+com/ocr/app/PatientData.class
+com/ocr/app/OcrData.class
+com/ocr/app/MpWord.class
+com/ocr/app/FeatureType.class

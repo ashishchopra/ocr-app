@@ -38,19 +38,14 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.google.apis</groupId>
-            <artifactId>google-api-services-vision</artifactId>
-            <version>v1-rev1-1.19.1</version>
-        </dependency>
-        <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>3.8.0</version>
+            <version>3.9.0-rc-1</version>
         </dependency>
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-vision</artifactId>
-            <version>1.80.0</version>
+            <version>1.82.0</version>
         </dependency>
 
     </dependencies>
@@ -58,6 +53,30 @@
     <build>
         <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
             <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>1.6.0</version>
+                    <configuration>
+                        <classpathScope>test</classpathScope>
+                        <mainClass>com.ocr.app.App</mainClass>
+                    </configuration>
+<!--                    <executions>-->
+<!--                        <execution>-->
+<!--                            <id>run-selenium</id>-->
+<!--                            <phase>integration-test</phase>-->
+<!--                            <goals><goal>java</goal></goals>-->
+<!--                        </execution>-->
+<!--                    </executions>-->
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>1.8</source>
+                        <target>1.8</target>
+                    </configuration>
+                </plugin>
                 <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
                 <plugin>
                     <artifactId>maven-clean-plugin</artifactId>
